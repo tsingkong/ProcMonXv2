@@ -152,10 +152,12 @@ protected:
 		auto col = GetRealColumn(hdr->hwndFrom, item.iSubItem);
 		auto p = static_cast<T*>(this);
 		if (item.mask & LVIF_TEXT) {
+			/*
 			auto name = p->GetColumnTextPointer(hdr->hwndFrom, item.iItem, col);
 			if (name)
 				item.pszText = (PWSTR)name;
 			else
+			*/
 				::StringCchCopy(item.pszText, item.cchTextMax, p->GetColumnText(hdr->hwndFrom, item.iItem, col));
 		}
 		if (item.mask & LVIF_IMAGE)

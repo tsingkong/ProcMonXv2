@@ -12,6 +12,7 @@
 #include "EventConfiguration.h"
 #include "SymbolsHandler.h"
 #include "FilterConfiguration.h"
+#include "IEventDataSerializer.h"
 
 class CView : 
 	public CViewBase<CView>,
@@ -59,6 +60,7 @@ public:
 		COMMAND_ID_HANDLER(ID_MONITOR_CLEAR, OnClear)
 		COMMAND_ID_HANDLER(ID_EDIT_COPY, OnCopy)
 		COMMAND_ID_HANDLER(ID_FILE_SAVE, OnSave)
+		COMMAND_ID_HANDLER(ID_FILE_SAVE_AS, OnBackingFile)
 		COMMAND_ID_HANDLER(ID_EDIT_COPYALL, OnCopyAll)
 		COMMAND_ID_HANDLER(ID_VIEW_AUTOSCROLL, OnAutoScroll)
 		MESSAGE_HANDLER(WM_DESTROY, OnDestroy)
@@ -70,8 +72,8 @@ public:
 	END_MSG_MAP()
 
 private:
-	std::wstring ProcessSpecialEvent(EventData* data) const;
-	std::wstring GetEventDetails(EventData* data) const;
+	// std::wstring ProcessSpecialEvent(EventData* data) const;
+	// std::wstring GetEventDetails(EventData* data) const;
 	void UpdateEventStatus();
 	void UpdateUI();
 	void ApplyFilters(const FilterConfiguration& config);
@@ -92,6 +94,7 @@ private:
 	LRESULT OnConfigureEvents(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCopy(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnSave(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
+	LRESULT OnBackingFile(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnCopyAll(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnAutoScroll(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
 	LRESULT OnConfigFilters(WORD /*wNotifyCode*/, WORD /*wID*/, HWND /*hWndCtl*/, BOOL& /*bHandled*/);
@@ -104,7 +107,8 @@ private:
 	inline static std::unordered_map<std::wstring, int> s_IconsMap;
 	std::vector<std::shared_ptr<EventData>> m_Events;
 	std::vector<std::shared_ptr<EventData>> m_OrgEvents;
-	std::vector<std::shared_ptr<EventData>> m_TempEvents;
+	std::vector<std::shared_ptr<EventData>> m_TempEvents;	// new events haven't transfer to m_OrgEvents/m_Events
+	std::unique_ptr<IEventDataSerializer>   m_BackingFile;
 	std::mutex m_EventsLock;
 	EventsConfiguration m_EventsConfig;
 	FilterConfiguration m_FilterConfig;

@@ -7,5 +7,10 @@ struct FormatHelper {
 	static CString VirtualAllocFlagsToString(DWORD flags, bool withNumeric = false);
 	static CString MajorFunctionToString(UCHAR mf);
 	static PCWSTR ObjectTypeToString(int type);
+
+	static int GetColumnCount();
+	static CString GetColumnText(EventData* item, int col);
+	static std::wstring ProcessSpecialEvent(EventData* data);
+	static std::wstring GetEventDetails(EventData* data);
 };
 

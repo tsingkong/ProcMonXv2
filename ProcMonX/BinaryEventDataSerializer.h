@@ -8,6 +8,8 @@ public:
 	// Inherited via IEventDataSerializer
 	virtual bool Save(const std::vector<std::shared_ptr<EventData>>& events, const EventDataSerializerOptions& options, PCWSTR path) override;
 	virtual std::vector<std::shared_ptr<EventData>> Load(PCWSTR path) override;
+	virtual bool OpenFileForAppend(PCWSTR path) override;
+	virtual bool Append(const std::shared_ptr<EventData>& data) override;
 
 private:
 	void WriteMetadata(StructuredStorage::CompoundFile* file, const std::vector<std::shared_ptr<EventData>>& events);

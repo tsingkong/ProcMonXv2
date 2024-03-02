@@ -87,3 +87,13 @@ void BinaryEventDataSerializer::WriteSimpleData(StructuredStorage::StructuredDir
 	CompoundFileReaderWriter writer(*file);
 	writer.Write(value);
 }
+
+bool BinaryEventDataSerializer::OpenFileForAppend(PCWSTR path)
+{
+	return false;
+}
+
+bool BinaryEventDataSerializer::Append(const std::shared_ptr<EventData>& data)
+{
+	return false;
+}

@@ -271,3 +271,82 @@ PCWSTR FormatHelper::ObjectTypeToString(int type) {
 	}
 	return types.empty() ? L"" : types[type].c_str();
 }
+
+std::wstring FormatHelper::ProcessSpecialEvent(EventData* data) {
+	std::wstring details;
+	CString text;
+	auto& name = data->GetEventName();
+	if (name == L"Process/Start") {
+		text.Format(L"PID: %u; Image: %s; Command Line: %s",
+			data->GetProperty(L"ProcessId")->GetValue<DWORD>(),
+			CString(data->GetProperty(L"ImageFileName")->GetAnsiString()),
+			data->GetProperty(L"CommandLine")->GetUnicodeString());
+		details = std::move(text);
+	}
+	return details;
+}
+
+std::wstring FormatHelper::GetEventDetails(EventData* data) {
+	auto details = ProcessSpecialEvent(data);
+	if (details.empty()) {
+		for (auto& prop : data->GetProperties()) {
+			if (prop.Name.substr(0, 8) != L"Reserved" && prop.Name.substr(0, 4) != L"TTID") {
+				auto value = FormatHelper::FormatProperty(data, prop);
+				if (value.empty())
+					value = data->FormatProperty(prop);
+				if (!value.empty()) {
+					if (value.size() > 102)
+						value = value.substr(0, 100) + L"...";
+					details += prop.Name + L": " + value + L"; ";
+				}
+			}
+		}
+	}
+	return details;
+}
+
+int FormatHelper::GetColumnCount() {
+	return 7;
+}
+
+CString FormatHelper::GetColumnText(EventData* item, int col) {
+	CString text;
+
+	switch (col) {
+	case 0: {
+		text.Format(L"%7u", item->GetIndex());
+		if (item->GetStackEventData())
+			text += L" *";
+		break;
+	}
+	case 1:	{
+		auto ts = item->GetTimeStamp();
+		return FormatHelper::FormatTime(ts);
+	}
+	case 2:
+		return item->GetEventName().c_str();
+	case 3:	{
+		auto pid = item->GetProcessId();
+		if (pid != (DWORD)-1)
+			text.Format(L"%u (0x%X)", pid, pid);
+		break;
+	}
+	case 4:
+		return item->GetProcessName().c_str();
+	case 5:	{
+		auto tid = item->GetThreadId();
+		if (tid != (DWORD)-1 && tid != 0)
+			text.Format(L"%u (0x%X)", tid, tid);
+		break;
+	}
+	//case 6: text.Format(L"%d", (int)item->GetEventDescriptor().Opcode);
+	//case 7: 
+	//	::StringFromGUID2(item->GetProviderId(), text.GetBufferSetLength(64), 64);
+	//	break;
+
+	case 6:
+		return GetEventDetails(item).c_str();
+	}
+
+	return text;
+}

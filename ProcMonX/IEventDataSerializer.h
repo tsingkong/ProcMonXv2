@@ -12,5 +12,7 @@ struct EventDataSerializerOptions {
 struct IEventDataSerializer abstract {
 	virtual bool Save(const std::vector<std::shared_ptr<EventData>>& events, const EventDataSerializerOptions& options, PCWSTR path) = 0;
 	virtual std::vector<std::shared_ptr<EventData>> Load(PCWSTR path) = 0;
+	virtual bool OpenFileForAppend(PCWSTR path) = 0;
+	virtual bool Append(const std::shared_ptr<EventData>& data) = 0;
 };
 

@@ -35,6 +35,8 @@ void CView::AddEvent(std::shared_ptr<EventData> data) {
 	{
 		std::lock_guard lock(m_EventsLock);
 		m_TempEvents.push_back(data);
+		if (m_BackingFile.get() != nullptr)
+			m_BackingFile->Append(data);
 	}
 }
 
@@ -61,8 +63,8 @@ void CView::StartMonitoring(TraceManager& tm, bool start) {
 
 CString CView::GetColumnText(HWND, int row, int col) const {
 	auto item = m_Events[row].get();
-	CString text;
-
+	CString text = FormatHelper::GetColumnText(item, col);
+	/*
 	switch (col) {
 		case 0:
 			text.Format(L"%7u", item->GetIndex());
@@ -97,7 +99,7 @@ CString CView::GetColumnText(HWND, int row, int col) const {
 		case 6:
 			return GetEventDetails(item).c_str();
 	}
-
+	*/
 	return text;
 }
 
@@ -139,6 +141,7 @@ bool CView::OnDoubleClickList(int row, int col, POINT& pt) {
 	return true;
 }
 
+/*
 std::wstring CView::ProcessSpecialEvent(EventData* data) const {
 	std::wstring details;
 	CString text;
@@ -171,6 +174,7 @@ std::wstring CView::GetEventDetails(EventData* data) const {
 	}
 	return details;
 }
+*/
 
 void CView::UpdateEventStatus() {
 	CString text;
@@ -226,7 +230,7 @@ DWORD CView::OnSubItemPrePaint(int, LPNMCUSTOMDRAW cd) {
 	if (sub == 8 && (m_List.GetItemState(index, LVIS_SELECTED) & LVIS_SELECTED) == 0) {
 		auto& item = m_Events[index];
 		auto start = (size_t)0;
-		auto details = GetEventDetails(item.get());
+		auto details = FormatHelper::GetEventDetails(item.get());
 		bool bold = false;
 		CDCHandle dc(cd->hdc);
 		std::wstring str;
@@ -497,6 +501,39 @@ LRESULT CView::OnSave(WORD, WORD, HWND, BOOL&) {
 	return 0;
 }
 
+LRESULT CView::OnBackingFile(WORD, WORD, HWND, BOOL&) {
+	CSimpleFileDialog dlg(FALSE, L"pmx", nullptr, OFN_EXPLORER | OFN_OVERWRITEPROMPT | OFN_ENABLESIZING,
+		L"ProcMonX files (*.pmx)\0*.pmx\0CSV Files (*csv)\0*.csv\0", *this);
+	if (dlg.DoModal() != IDOK) {
+		return 0;
+	}
+
+	CString filename(dlg.m_szFileTitle);
+	auto ext = filename.ReverseFind(L'.');
+	if (ext > 0) {
+		m_BackingFile = SerializerFactory::CreateFromExtension(filename.Mid(ext + 1));
+		if (m_BackingFile) {
+			EventDataSerializerOptions options;
+			CWaitCursor wait;
+			// save current events(m_OrgEvents + m_TempEvents) firstly, overwrite file content
+			// can't AddEvent while saving file to keep the right order of events in file
+			std::lock_guard lock(m_EventsLock);
+			auto eventsCopy = m_OrgEvents;
+			eventsCopy.insert(eventsCopy.end(), m_TempEvents.begin(), m_TempEvents.end());
+
+			if (!m_BackingFile->Save(eventsCopy, options, dlg.m_szFileName))
+				AtlMessageBox(*this, L"Failed to save data", IDS_TITLE, MB_ICONERROR);
+
+			// reopen serializer for later appending
+			if (!m_BackingFile->OpenFileForAppend(dlg.m_szFileName))
+				AtlMessageBox(*this, L"Failed to open file for appending", IDS_TITLE, MB_ICONERROR);
+			return 0;
+		}
+	}
+	AtlMessageBox(*this, L"Unknown file extension", IDS_TITLE, MB_ICONEXCLAMATION);
+	return 0;
+}
+
 LRESULT CView::OnCopyAll(WORD, WORD, HWND, BOOL&) {
 	ATLASSERT(!m_IsMonitoring || GetFrame()->GetTraceManager().IsPaused());
 	CWaitCursor wait;
@@ -610,7 +647,7 @@ LRESULT CView::OnFindNext(WORD, WORD, HWND, BOOL&) {
 			}
 		}
 		if (options.SearchDetails) {
-			CString text = GetEventDetails(&evt).c_str();
+			CString text = FormatHelper::GetEventDetails(&evt).c_str();
 			if (!cs)
 				text.MakeLower();
 			if (text.Find(search) >= 0) {
